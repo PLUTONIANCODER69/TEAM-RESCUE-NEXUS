@@ -7,23 +7,55 @@
     <title>ResQ Dashboard | Disaster Management</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
+    <div class="background-animation">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="particles"></div>
+    </div>
     <header>
-        <div class="team-name">TEAM HARMONIC</div>
-        <h1><i class="fas fa-shield-alt"></i> ResQ Command Center</h1>
-        <div class="system-status">
-            <span class="status-dot"></span> SYSTEM ONLINE
+        <div class="header-left">
+            <div id="realtime-clock" class="clock">
+                <div class="time" id="clock-time">00:00:00</div>
+                <div class="date" id="clock-date">Loading...</div>
+            </div>
+        </div>
+        <div class="header-center">
+            <div class="team-name">TEAM ESP ELITES</div>
+            <h1><i class="fas fa-shield-alt"></i> ResQ Command Center</h1>
+            <div class="system-status">
+                <span class="status-dot"></span> SYSTEM ONLINE
+            </div>
+        </div>
+        <div class="header-right">
+            <button id="recent-sos-btn" class="icon-btn" title="Recent SOS History">
+                <i class="fas fa-history"></i>
+                <span class="btn-label">RECENT</span>
+            </button>
         </div>
     </header>
+
+    <!-- Modal for SOS History -->
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-history"></i> SOS History</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div id="sos-history-list" class="history-list">
+                <div class="no-history">No SOS signals sent yet.</div>
+            </div>
+        </div>
+    </div>
 
     <main class="dashboard">
         <!-- Section 1: Smart Helmet -->
         <section class="card" id="helmet-section">
-            <h2><i class="fas fa-helmet-safety"></i> Smart Helmet</h2>
+            <h2><i class="fas fa-helmet-un"></i> Smart Helmet</h2>
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-label">Alcohol Level</div>
@@ -43,7 +75,7 @@
 
         <!-- Section 2: Coal Mining -->
         <section class="card" id="mining-section">
-            <h2><i class="fas fa-mountain"></i> Coal Mining Safety</h2>
+            <h2><i class="fas fa-person-digging"></i> Coal Mining Safety</h2>
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-label">Toxic Gas (CH4)</div>
@@ -84,7 +116,7 @@
         </section>
     </main>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
     <script src="main.js"></script>
 </body>
 
