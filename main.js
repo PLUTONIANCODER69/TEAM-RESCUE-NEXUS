@@ -32,60 +32,55 @@ const LIMITS = {
 // --- Initialization ---
 let helmetMap, fireMap, helmetMarker, fireMarker;
 
-// Dark mode styles for Google Maps
-const darkStyles = [
-    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
-    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
-];
+const darkTileLayer = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 function initMaps() {
-    const coords = { lat: state.location[0], lng: state.location[1] };
+    const coords = [state.location[0], state.location[1]];
 
-    const mapOptions = {
-        center: coords,
-        zoom: 14,
-        styles: darkStyles,
-        disableDefaultUI: true,
-        backgroundColor: '#0b0e14'
-    };
+    // Initialize Helmet Map
+    helmetMap = L.map('helmet-map', {
+        zoomControl: false,
+        attributionControl: false
+    }).setView(coords, 14);
 
-    helmetMap = new google.maps.Map(document.getElementById('helmet-map'), mapOptions);
-    fireMap = new google.maps.Map(document.getElementById('fire-map'), mapOptions);
+    L.tileLayer(darkTileLayer, {
+        attribution: attribution,
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(helmetMap);
 
-    helmetMarker = new google.maps.Marker({
-        position: coords,
-        map: helmetMap,
-        title: "Helmet Position",
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: '#00f2fe',
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: '#fff',
-            scale: 8
-        }
+    // Custom Blue Circle for Helmet
+    const helmetIcon = L.divIcon({
+        className: 'custom-map-marker',
+        html: '<div style="background-color: #00f2fe; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #00f2fe;"></div>',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
     });
 
-    fireMarker = new google.maps.Marker({
-        position: coords,
-        map: fireMap,
-        title: "Fire Alarm Site",
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: '#ff4d4d',
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: '#fff',
-            scale: 8
-        }
+    helmetMarker = L.marker(coords, { icon: helmetIcon }).addTo(helmetMap);
+
+    // Initialize Fire Map
+    fireMap = L.map('fire-map', {
+        zoomControl: false,
+        attributionControl: false
+    }).setView(coords, 14);
+
+    L.tileLayer(darkTileLayer, {
+        attribution: attribution,
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(fireMap);
+
+    // Custom Red Circle for Fire
+    const fireIcon = L.divIcon({
+        className: 'custom-map-marker',
+        html: '<div style="background-color: #ff4d4d; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px #ff4d4d;"></div>',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
     });
+
+    fireMarker = L.marker(coords, { icon: fireIcon }).addTo(fireMap);
 }
 
 function updateClock() {
@@ -240,9 +235,9 @@ function simulate() {
     state.location[0] += (Math.random() - 0.5) * 0.001;
     state.location[1] += (Math.random() - 0.5) * 0.001;
 
-    const coords = { lat: state.location[0], lng: state.location[1] };
-    helmetMarker.setPosition(coords);
-    fireMarker.setPosition(coords);
+    const coords = [state.location[0], state.location[1]];
+    helmetMarker.setLatLng(coords);
+    fireMarker.setLatLng(coords);
 
     helmetMap.panTo(coords);
     fireMap.panTo(coords);
