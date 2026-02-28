@@ -1,3 +1,12 @@
+// --- Firebase Configuration ---
+const firebaseConfig = {
+    apiKey: "AIzaSyA6P23T6k-Ta6qF07TmPLgNUDbo-EImU",
+    databaseURL: "https://fire-and-smoke-91fa9-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
 // --- Simulation Data & Logic ---
 
 const state = {
@@ -225,8 +234,8 @@ function simulate() {
     state.gas = Math.floor(Math.random() * 150);
     state.temp = 20 + Math.floor(Math.random() * 40);
     state.aqi = Math.floor(Math.random() * 200);
-    state.flame = Math.floor(Math.random() * 100);
-    state.smoke = Math.random() * 10;
+    state.flame = isFirebaseOverriding ? state.flame : Math.floor(Math.random() * 100);
+    state.smoke = isFirebaseOverriding ? state.smoke : Math.random() * 10;
 
     // Simulate accident every now and then
     state.accident = Math.random() > 0.9;
@@ -265,10 +274,51 @@ window.onclick = (event) => {
     }
 };
 
+let isFirebaseOverriding = false;
+
 window.onload = () => {
     initMaps();
     setInterval(simulate, 3000);
     setInterval(updateClock, 1000);
     updateClock();
     updateUI();
+
+    // Firebase Listener
+    const fireRef = firebase.database().ref("fire");
+    fireRef.on("value", (snapshot) => {
+        const data = snapshot.val();
+        isFirebaseOverriding = true;
+
+        const statusEl = document.getElementById("status-indicator");
+
+        if (data == 1) {
+            state.flame = 100;
+            state.smoke = 15.0;
+            if (statusEl) statusEl.innerHTML = "🔥 FIRE DETECTED!";
+
+            // 📍 LOCATION JUGAAD (Live Geolocation)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    state.location = [lat, lon];
+
+                    // Sync Maps & Markers
+                    const coords = [lat, lon];
+                    helmetMarker.setLatLng(coords);
+                    fireMarker.setLatLng(coords);
+                    helmetMap.setView(coords, 15);
+                    fireMap.setView(coords, 15);
+
+                    fireMarker.bindPopup("🔥 Fire detected here").openPopup();
+                });
+            }
+            alert("🔥 FIRE DETECTED!");
+        } else {
+            state.flame = 5;
+            state.smoke = 0.05;
+            if (statusEl) statusEl.innerHTML = "✅ SAFE";
+        }
+        updateUI();
+    });
 };
