@@ -24,6 +24,7 @@ const state = {
         accident: false,
         gas: false,
         temp: false,
+        aqi: false,
         fire: false
     }
 };
@@ -33,7 +34,7 @@ const LIMITS = {
     ALC: 0.08,
     GAS: 100,
     TEMP: 45,
-    AQI: 150,
+    AQI: 240,
     FLAME: 70,
     SMOKE: 5.0
 };
@@ -172,7 +173,14 @@ function updateUI() {
     // 2. Mining
     document.getElementById('gas-value').innerText = `${state.gas} ppm`;
     document.getElementById('temp-value').innerText = `${state.temp}°C`;
-    document.getElementById('aqi-value').innerText = state.aqi;
+
+    // AQI Word Conversion
+    let aqiWord = "Excellent";
+    if (state.aqi > 240) aqiWord = "Critical";
+    else if (state.aqi > 130) aqiWord = "Bad";
+    else if (state.aqi > 50) aqiWord = "Good";
+
+    document.getElementById('aqi-value').innerText = aqiWord;
 
     const miningAlert = document.getElementById('mining-alert');
     if (state.gas > LIMITS.GAS) {
@@ -194,9 +202,14 @@ function updateUI() {
         } else {
             state.activeAlerts.temp = false;
             if (state.aqi > LIMITS.AQI) {
-                miningAlert.innerHTML = `<i class="fas fa-mask"></i> POOR AIR QUALITY! SOS SENT TO MINE RESCUE TEAM!`;
-                miningAlert.className = 'alert warning';
+                miningAlert.innerHTML = `<i class="fas fa-biohazard"></i> CRITICAL AQI DETECTED! SOS SENT TO MINE RESCUE TEAM!`;
+                miningAlert.className = 'alert critical';
+                if (!state.activeAlerts.aqi) {
+                    recordSOS('Mining Safety', 'CRITICAL AQI DETECTED! SOS sent to Rescue Team.');
+                    state.activeAlerts.aqi = true;
+                }
             } else {
+                state.activeAlerts.aqi = false;
                 miningAlert.className = 'alert';
             }
         }
