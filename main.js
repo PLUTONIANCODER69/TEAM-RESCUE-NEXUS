@@ -50,7 +50,7 @@ const LIMITS = {
 // --- Initialization ---
 let helmetMap, fireMap, helmetMarker, fireMarker;
 
-const darkTileLayer = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const lightTileLayer = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 function initMaps() {
@@ -62,7 +62,7 @@ function initMaps() {
         attributionControl: false
     }).setView(coords, 14);
 
-    L.tileLayer(darkTileLayer, {
+    L.tileLayer(lightTileLayer, {
         attribution: attribution,
         subdomains: 'abcd',
         maxZoom: 19
@@ -84,7 +84,7 @@ function initMaps() {
         attributionControl: false
     }).setView(coords, 14);
 
-    L.tileLayer(darkTileLayer, {
+    L.tileLayer(lightTileLayer, {
         attribution: attribution,
         subdomains: 'abcd',
         maxZoom: 19
@@ -189,7 +189,10 @@ function updateUI() {
     else if (state.aqi > 50) aqiWord = "Good";
 
     document.getElementById('aqi').innerText = aqiWord;
-    const atmValue = (state.pressure || 1013.25) / 1013.25;
+    // Add micro-fluctuation for realistic sensor jitter (only affects decimals)
+    const jitter = (Math.random() - 0.5) * 0.02;
+    const atmBase = (state.pressure || 1013.25) / 1013.25;
+    const atmValue = atmBase + jitter;
     document.getElementById('pressure-value').innerText = `${atmValue.toFixed(2)} atm`;
 
     const miningAlert = document.getElementById('mining-alert');
