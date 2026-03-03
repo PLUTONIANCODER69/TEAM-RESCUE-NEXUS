@@ -189,7 +189,8 @@ function updateUI() {
     else if (state.aqi > 50) aqiWord = "Good";
 
     document.getElementById('aqi').innerText = aqiWord;
-    document.getElementById('pressure-value').innerText = `${state.pressure || 1013} hPa`;
+    const atmValue = (state.pressure || 1013.25) / 1013.25;
+    document.getElementById('pressure-value').innerText = `${atmValue.toFixed(2)} atm`;
 
     const miningAlert = document.getElementById('mining-alert');
     if (state.gas > LIMITS.GAS) {
@@ -337,13 +338,22 @@ window.onload = () => {
 
         // Use snippet IDs for status specifically
         if (data.status) {
-            document.getElementById('status').innerText = data.status;
+            const statusEl = document.getElementById('status');
+            const statusText = data.status.toUpperCase();
+
+            if (statusText.includes('SAFE') || statusText.includes('ONLINE') || statusText.includes('NORMAL')) {
+                statusEl.innerHTML = `✅ ${statusText}`;
+            } else if (statusText.includes('DANGER') || statusText.includes('CRITICAL') || statusText.includes('HIGH')) {
+                statusEl.innerHTML = `🚨 ${statusText}`;
+            } else {
+                statusEl.innerHTML = statusText;
+            }
 
             // Map to the mining alert box for better UI feedback
             const miningAlert = document.getElementById('mining-alert');
             if (miningAlert) {
-                miningAlert.innerHTML = `<i class="fas fa-info-circle"></i> STATUS: ${data.status}`;
-                miningAlert.className = (data.status.toLowerCase().includes('danger') || data.status.toLowerCase().includes('critical')) ? 'alert critical' : 'alert';
+                miningAlert.innerHTML = `<i class="fas fa-info-circle"></i> STATUS: ${statusText}`;
+                miningAlert.className = (statusText.includes('DANGER') || statusText.includes('CRITICAL')) ? 'alert critical' : 'alert';
             }
         }
         updateUI();
