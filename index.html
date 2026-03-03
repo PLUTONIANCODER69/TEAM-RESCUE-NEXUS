@@ -82,6 +82,10 @@
         <!-- Section 2: Coal Mining -->
         <section class="card" id="mining-section">
             <h2><i class="fas fa-person-digging"></i> Coal Mining Safety</h2>
+            <div
+                style="font-size: 0.8rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem; text-align: right;">
+                STATUS: <span id="status">✅ SAFE</span>
+            </div>
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-label">Toxic Gas (CH4)</div>
@@ -97,12 +101,10 @@
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Pressure</div>
-                    <div class="stat-value" id="pressure-value">1013 hPa</div>
+                    <div class="stat-value" id="pressure-value">1.00 atm</div>
                 </div>
             </div>
             <div id="mining-alert" class="alert"></div>
-            <div id="status" style="font-size: 0.75rem; text-align: center; color: var(--text-dim); margin-top: 4px;">
-                Status: Online</div>
         </section>
 
         <!-- Section 3: Fire & Smoke -->
