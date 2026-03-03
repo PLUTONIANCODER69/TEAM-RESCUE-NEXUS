@@ -7,6 +7,13 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
+// --- Section 2: Mining Specific Backend ---
+const miningConfig = {
+    apiKey: "AIzaSyAYjHYduvEDmaeD3PV3yPHq9VvmMIP64-k",
+    databaseURL: "https://coalminingsafety-dd88e-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+const miningApp = firebase.initializeApp(miningConfig, "miningApp");
+
 // --- Simulation Data & Logic ---
 
 const state = {
@@ -19,6 +26,7 @@ const state = {
     location: [23.8103, 90.4125], // Default coords
     ignCut: false,
     accident: false,
+    pressure: 1013,
     sosHistory: [],
     activeAlerts: {
         accident: false,
@@ -32,8 +40,8 @@ const state = {
 // Thresholds
 const LIMITS = {
     ALC: 0.08,
-    GAS: 100,
-    TEMP: 45,
+    GAS: 150,
+    TEMP: 42,
     AQI: 240,
     FLAME: 70,
     SMOKE: 5.0
@@ -171,8 +179,8 @@ function updateUI() {
     }
 
     // 2. Mining
-    document.getElementById('gas-value').innerText = `${state.gas} ppm`;
-    document.getElementById('temp-value').innerText = `${state.temp}°C`;
+    document.getElementById('gas').innerText = `${state.gas} ppm`;
+    document.getElementById('temp').innerText = `${state.temp}°C`;
 
     // AQI Word Conversion
     let aqiWord = "Excellent";
@@ -180,7 +188,8 @@ function updateUI() {
     else if (state.aqi > 130) aqiWord = "Bad";
     else if (state.aqi > 50) aqiWord = "Good";
 
-    document.getElementById('aqi-value').innerText = aqiWord;
+    document.getElementById('aqi').innerText = aqiWord;
+    document.getElementById('pressure-value').innerText = `${state.pressure || 1013} hPa`;
 
     const miningAlert = document.getElementById('mining-alert');
     if (state.gas > LIMITS.GAS) {
@@ -291,46 +300,92 @@ let isFirebaseOverriding = false;
 
 window.onload = () => {
     initMaps();
-    setInterval(simulate, 3000);
+    // setInterval(simulate, 3000); // Disabled to favor real-time data from individual Firebase paths
     setInterval(updateClock, 1000);
     updateClock();
     updateUI();
 
-    // Firebase Listener
+    isFirebaseOverriding = true;
+
+    // --- Section 1: Smart Helmet Listener ---
+    const helmetRef = firebase.database().ref("helmet");
+    helmetRef.on("value", (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        if (data.alc !== undefined) state.alc = parseFloat(data.alc);
+        if (data.accident !== undefined) state.accident = !!data.accident;
+        if (data.lat !== undefined && data.lon !== undefined) {
+            state.location = [parseFloat(data.lat), parseFloat(data.lon)];
+            const coords = [state.location[0], state.location[1]];
+            helmetMarker.setLatLng(coords);
+            helmetMap.panTo(coords);
+        }
+        updateUI();
+    });
+
+    // --- Section 2: Coal Mining Listener (Linked to New Backend) ---
+    const miningRef = miningApp.database().ref("data");
+    miningRef.on("value", (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        console.log("Mining Backend Data:", data); // Debug sync
+
+        if (data.gas !== undefined) state.gas = parseFloat(data.gas);
+        if (data.temp !== undefined) state.temp = parseFloat(data.temp);
+        if (data.aqi !== undefined) state.aqi = parseFloat(data.aqi);
+
+        // Use snippet IDs for status specifically
+        if (data.status) {
+            document.getElementById('status').innerText = data.status;
+
+            // Map to the mining alert box for better UI feedback
+            const miningAlert = document.getElementById('mining-alert');
+            if (miningAlert) {
+                miningAlert.innerHTML = `<i class="fas fa-info-circle"></i> STATUS: ${data.status}`;
+                miningAlert.className = (data.status.toLowerCase().includes('danger') || data.status.toLowerCase().includes('critical')) ? 'alert critical' : 'alert';
+            }
+        }
+        updateUI();
+    });
+
+    // --- Section 3: Fire & Smoke Listener ---
     const fireRef = firebase.database().ref("fire");
     fireRef.on("value", (snapshot) => {
         const data = snapshot.val();
-        isFirebaseOverriding = true;
+        if (!data && data !== 0) return; // Support "fire: 0" or "fire: 1"
 
         const statusEl = document.getElementById("status-indicator");
 
-        if (data == 1) {
-            state.flame = 100;
-            state.smoke = 15.0;
-            if (statusEl) statusEl.innerHTML = "🔥 FIRE DETECTED!";
-
-            // 📍 LOCATION JUGAAD (Live Geolocation)
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function (position) {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    state.location = [lat, lon];
-
-                    // Sync Maps & Markers
-                    const coords = [lat, lon];
-                    helmetMarker.setLatLng(coords);
-                    fireMarker.setLatLng(coords);
-                    helmetMap.setView(coords, 15);
-                    fireMap.setView(coords, 15);
-
-                    fireMarker.bindPopup("🔥 Fire detected here").openPopup();
-                });
-            }
-            alert("🔥 FIRE DETECTED!");
+        // Handle both simple 'fire: 1' and object '{flame: 100, smoke: 15}'
+        if (typeof data === 'object') {
+            if (data.flame !== undefined) state.flame = parseFloat(data.flame);
+            if (data.smoke !== undefined) state.smoke = parseFloat(data.smoke);
+            if (data.status && statusEl) statusEl.innerHTML = data.status;
         } else {
-            state.flame = 5;
-            state.smoke = 0.05;
-            if (statusEl) statusEl.innerHTML = "✅ SAFE";
+            // Simple toggle (v8 style)
+            if (data == 1) {
+                state.flame = 100;
+                state.smoke = 15.0;
+                if (statusEl) statusEl.innerHTML = "🔥 FIRE DETECTED!";
+
+                // Live Geolocation for Fire module specifically
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        state.location = [lat, lon];
+                        const coords = [lat, lon];
+                        fireMarker.setLatLng(coords);
+                        fireMap.setView(coords, 15);
+                        fireMarker.bindPopup("🔥 Fire detected here").openPopup();
+                    });
+                }
+            } else {
+                state.flame = 5;
+                state.smoke = 0.05;
+                if (statusEl) statusEl.innerHTML = "✅ SAFE";
+            }
         }
         updateUI();
     });
