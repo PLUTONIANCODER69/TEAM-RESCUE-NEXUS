@@ -61,6 +61,7 @@ const LIMITS = {
 
 // --- Initialization ---
 let helmetMap, fireMap, helmetMarker, fireMarker;
+let fireWatchId = null;
 
 const darkTileLayer = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
@@ -115,6 +116,34 @@ function initMaps() {
     });
 
     fireMarker = L.marker(coords, { icon: fireIcon }).addTo(fireMap);
+
+    // Map Event Listeners to "Fetch" coordinates from map interaction
+    helmetMap.on('move', () => {
+        const center = helmetMap.getCenter();
+        updateCoordDisplays(center.lat, center.lng, 'helmet');
+    });
+
+    fireMap.on('move', () => {
+        const center = fireMap.getCenter();
+        updateCoordDisplays(center.lat, center.lng, 'fire');
+    });
+}
+
+function updateCoordDisplays(lat, lon, prefix) {
+    const latStr = lat.toFixed(4);
+    const lonStr = lon.toFixed(4);
+
+    // Update Overlay
+    const overlay = document.getElementById(`${prefix}-coords`);
+    if (overlay) overlay.innerText = `Lat: ${latStr}, Lon: ${lonStr}`;
+
+    // Update Stats Grid (specifically for Fire section as requested)
+    if (prefix === 'fire') {
+        const latEl = document.getElementById('fire-lat');
+        const lonEl = document.getElementById('fire-lon');
+        if (latEl) latEl.innerText = latStr;
+        if (lonEl) lonEl.innerText = lonStr;
+    }
 }
 
 function updateClock() {
@@ -264,7 +293,21 @@ function updateUI() {
     document.getElementById('smoke-value').innerText = `${state.smoke.toFixed(2)} mg/m³`;
 
     const fireAlert = document.getElementById('fire-alert');
-    if (state.flame > LIMITS.FLAME || state.smoke > LIMITS.SMOKE) {
+    const isFireAlert = state.flame > LIMITS.FLAME || state.smoke > LIMITS.SMOKE;
+
+    // Toggle coordinate visibility
+    const fireLatStat = document.getElementById('fire-lat-stat');
+    const fireLonStat = document.getElementById('fire-lon-stat');
+    const fireCoordsOverlay = document.getElementById('fire-coords');
+
+    const displayMode = isFireAlert ? 'flex' : 'none';
+    const overlayMode = isFireAlert ? 'block' : 'none';
+
+    if (fireLatStat) fireLatStat.style.display = displayMode;
+    if (fireLonStat) fireLonStat.style.display = displayMode;
+    if (fireCoordsOverlay) fireCoordsOverlay.style.display = overlayMode;
+
+    if (isFireAlert) {
         fireAlert.innerHTML = `<i class="fas fa-fire-extinguisher"></i> FIRE/SMOKE DETECTED! SOS SENT TO FIRE DEPARTMENT.`;
         fireAlert.className = 'alert critical';
         if (!state.activeAlerts.fire) {
@@ -361,8 +404,15 @@ window.onload = () => {
         }
 
         if (data.lat !== undefined && data.lon !== undefined) {
-            state.location = [parseFloat(data.lat), parseFloat(data.lon)];
-            const coords = [state.location[0], state.location[1]];
+            const lat = parseFloat(data.lat);
+            const lon = parseFloat(data.lon);
+            state.location = [lat, lon];
+
+            // Update Coordinate Overlays
+            updateCoordDisplays(lat, lon, 'helmet');
+            updateCoordDisplays(lat, lon, 'fire');
+
+            const coords = [lat, lon];
             helmetMarker.setLatLng(coords);
             helmetMap.panTo(coords);
         }
@@ -408,40 +458,78 @@ window.onload = () => {
     const fireRef = firebase.database().ref("fire");
     fireRef.on("value", (snapshot) => {
         const data = snapshot.val();
-        if (!data && data !== 0) return; // Support "fire: 0" or "fire: 1"
+        if (!data && data !== 0) return;
 
         const statusEl = document.getElementById("status-indicator");
 
-        // Handle both simple 'fire: 1' and object '{flame: 100, smoke: 15}'
         if (typeof data === 'object') {
             if (data.flame !== undefined) state.flame = parseFloat(data.flame);
             if (data.smoke !== undefined) state.smoke = parseFloat(data.smoke);
             if (data.status && statusEl) statusEl.innerHTML = data.status;
+
+            if (data.lat !== undefined && data.lon !== undefined) {
+                const lat = parseFloat(data.lat);
+                const lon = parseFloat(data.lon);
+                state.location = [lat, lon];
+                updateCoordDisplays(lat, lon, 'fire');
+                const coords = [lat, lon];
+                fireMarker.setLatLng(coords);
+                fireMap.panTo(coords);
+            }
         } else {
             // Simple toggle (v8 style)
             if (data == 1) {
                 state.flame = 100;
                 state.smoke = 15.0;
                 if (statusEl) statusEl.innerHTML = "🔥 FIRE DETECTED!";
-
-                // Live Geolocation for Fire module specifically
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function (position) {
-                        const lat = position.coords.latitude;
-                        const lon = position.coords.longitude;
-                        state.location = [lat, lon];
-                        const coords = [lat, lon];
-                        fireMarker.setLatLng(coords);
-                        fireMap.setView(coords, 15);
-                        fireMarker.bindPopup("🔥 Fire detected here").openPopup();
-                    });
-                }
             } else {
                 state.flame = 5;
                 state.smoke = 0.05;
                 if (statusEl) statusEl.innerHTML = "✅ SAFE";
             }
         }
+
+        // Continuous Tracking Trigger based on Fire/Smoke state
+        const isAlert = (state.flame > LIMITS.FLAME || state.smoke > LIMITS.SMOKE);
+        handleFireTracking(isAlert);
+
         updateUI();
     });
 };
+
+function handleFireTracking(active) {
+    if (active) {
+        // Start continuous tracking if not already active
+        if (!fireWatchId && navigator.geolocation) {
+            console.log("Starting continuous fire tracking...");
+            fireWatchId = navigator.geolocation.watchPosition((position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                state.location = [lat, lon];
+
+                // Update map marker and stats grid continuously
+                updateCoordDisplays(lat, lon, 'fire');
+
+                const coords = [lat, lon];
+                fireMarker.setLatLng(coords);
+                fireMap.panTo(coords);
+
+                if (!fireMarker.getPopup() || !fireMarker.getPopup().isOpen()) {
+                    fireMarker.bindPopup("🔥 EMERGENCY: Continuous Tracking Active").openPopup();
+                }
+            }, (err) => console.warn("GPS Error:", err), {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            });
+        }
+    } else {
+        // Stop continuous tracking when safe
+        if (fireWatchId) {
+            console.log("Stopping continuous fire tracking.");
+            navigator.geolocation.clearWatch(fireWatchId);
+            fireWatchId = null;
+        }
+    }
+}
+
