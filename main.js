@@ -7,6 +7,18 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
+// --- Section 1: Smart Helmet Specific Backend ---
+const helmetConfig = {
+    apiKey: "YOUR_API_KEY", // Update with your actual API key if available
+    authDomain: "smarthelmet-2e543.firebaseapp.com",
+    databaseURL: "https://smarthelmet-2e543-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "smarthelmet-2e543",
+    storageBucket: "smarthelmet-2e543.appspot.com",
+    messagingSenderId: "532713455887",
+    appId: "1:532713455887:web:28439dc6d2daf412c4fe7a"
+};
+const helmetApp = firebase.initializeApp(helmetConfig, "helmetApp");
+
 // --- Section 2: Mining Specific Backend ---
 const miningConfig = {
     apiKey: "AIzaSyAYjHYduvEDmaeD3PV3yPHq9VvmMIP64-k",
@@ -39,7 +51,7 @@ const state = {
 
 // Thresholds
 const LIMITS = {
-    ALC: 0.08,
+    ALC: 1800,
     GAS: 150,
     TEMP: 42,
     AQI: 240,
@@ -50,11 +62,15 @@ const LIMITS = {
 // --- Initialization ---
 let helmetMap, fireMap, helmetMarker, fireMarker;
 
-const lightTileLayer = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+const darkTileLayer = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 function initMaps() {
     const coords = [state.location[0], state.location[1]];
+
+    // Dark background for map container to prevent flash
+    document.getElementById('helmet-map').style.backgroundColor = '#0b0e14';
+    document.getElementById('fire-map').style.backgroundColor = '#0b0e14';
 
     // Initialize Helmet Map
     helmetMap = L.map('helmet-map', {
@@ -62,7 +78,7 @@ function initMaps() {
         attributionControl: false
     }).setView(coords, 14);
 
-    L.tileLayer(lightTileLayer, {
+    L.tileLayer(darkTileLayer, {
         attribution: attribution,
         subdomains: 'abcd',
         maxZoom: 19
@@ -84,7 +100,7 @@ function initMaps() {
         attributionControl: false
     }).setView(coords, 14);
 
-    L.tileLayer(lightTileLayer, {
+    L.tileLayer(darkTileLayer, {
         attribution: attribution,
         subdomains: 'abcd',
         maxZoom: 19
@@ -151,9 +167,24 @@ function updateUI() {
     const alcAlert = document.getElementById('alc-alert');
     const accidentAlert = document.getElementById('accident-alert');
     const ignStatus = document.getElementById('ign-status');
+    const helmetStatusEl = document.getElementById('helmet-status');
 
-    if (state.alc > LIMITS.ALC) {
-        alcAlert.innerHTML = `<i class="fas fa-beer"></i> ALCOHOL DETECTED! IGNITION DISENGAGED.`;
+    if (helmetStatusEl) {
+        if (state.helmetStatus == 0) {
+            helmetStatusEl.innerText = "HELMET DETECTED";
+            helmetStatusEl.style.color = "var(--success)";
+        } else if (state.helmetStatus == 1) {
+            helmetStatusEl.innerText = "HELMET NOT DETECTED";
+            helmetStatusEl.style.color = "var(--danger)";
+        } else {
+            helmetStatusEl.innerText = state.helmetStatus || '--';
+            helmetStatusEl.style.color = "var(--primary)";
+        }
+    }
+
+    if (state.alc > LIMITS.ALC || state.helmetStatus == 1) {
+        let reason = state.helmetStatus == 1 ? "HELMET NOT DETECTED!" : "ALCOHOL DETECTED!";
+        alcAlert.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${reason} IGNITION DISENGAGED.`;
         alcAlert.className = 'alert critical';
         ignStatus.innerText = 'Ignition: CUT OFF';
         ignStatus.className = 'ign-status ign-cut';
@@ -311,13 +342,24 @@ window.onload = () => {
 
     isFirebaseOverriding = true;
 
-    // --- Section 1: Smart Helmet Listener ---
-    const helmetRef = firebase.database().ref("helmet");
+    // --- Section 1: Smart Helmet Listener (Linked to New Backend) ---
+    const helmetRef = helmetApp.database().ref("data");
     helmetRef.on("value", (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
-        if (data.alc !== undefined) state.alc = parseFloat(data.alc);
-        if (data.accident !== undefined) state.accident = !!data.accident;
+
+        console.log("Helmet Backend Data:", data);
+
+        // Map fields from the provided snippet: gas, helmet, accident, lat, lon
+        if (data.gas !== undefined) state.alc = parseFloat(data.gas);
+        if (data.helmet !== undefined) state.helmetStatus = data.helmet;
+
+        // Handle accident status (could be string "YES"/"NO" or boolean/number)
+        if (data.accident !== undefined) {
+            const acc = String(data.accident).toUpperCase();
+            state.accident = (acc === "YES" || acc === "1" || acc === "TRUE" || data.accident === true);
+        }
+
         if (data.lat !== undefined && data.lon !== undefined) {
             state.location = [parseFloat(data.lat), parseFloat(data.lon)];
             const coords = [state.location[0], state.location[1]];
