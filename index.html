@@ -84,7 +84,9 @@
             <div id="alc-alert" class="alert"></div>
             <div id="accident-alert" class="alert"></div>
             <div id="ign-status" class="ign-status ign-on">Ignition: ACTIVE</div>
-            <div id="helmet-map" class="map-container" style="height: 180px; margin-top: 1rem; border-radius: 12px;">
+            <div id="helmet-map" class="map-container"
+                style="height: 180px; margin-top: 1rem; border-radius: 12px; position: relative;">
+                <div id="helmet-coords" class="map-coords">Lat: --, Lon: --</div>
             </div>
         </section>
 
@@ -132,9 +134,19 @@
                     <div class="stat-label">Smoke Density</div>
                     <div class="stat-value" id="smoke-value">0.05 mg/m³</div>
                 </div>
+                <div class="stat-item" id="fire-lat-stat" style="display: none;">
+                    <div class="stat-label">Latitude</div>
+                    <div class="stat-value" id="fire-lat">--</div>
+                </div>
+                <div class="stat-item" id="fire-lon-stat" style="display: none;">
+                    <div class="stat-label">Longitude</div>
+                    <div class="stat-value" id="fire-lon">--</div>
+                </div>
             </div>
             <div id="fire-alert" class="alert"></div>
-            <div id="fire-map" class="map-container" style="height: 180px; margin-top: 1rem; border-radius: 12px;">
+            <div id="fire-map" class="map-container"
+                style="height: 180px; margin-top: 1rem; border-radius: 12px; position: relative;">
+                <div id="fire-coords" class="map-coords" style="display: none;">Lat: --, Lon: --</div>
             </div>
         </section>
     </main>
