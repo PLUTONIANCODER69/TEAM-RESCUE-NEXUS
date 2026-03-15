@@ -199,10 +199,10 @@ function updateUI() {
     const helmetStatusEl = document.getElementById('helmet-status');
 
     if (helmetStatusEl) {
-        if (state.helmetStatus == 0) {
+        if (state.helmetStatus == 1) {
             helmetStatusEl.innerText = "HELMET DETECTED";
             helmetStatusEl.style.color = "var(--success)";
-        } else if (state.helmetStatus == 1) {
+        } else if (state.helmetStatus == 0) {
             helmetStatusEl.innerText = "HELMET NOT DETECTED";
             helmetStatusEl.style.color = "var(--danger)";
         } else {
@@ -211,8 +211,8 @@ function updateUI() {
         }
     }
 
-    if (state.alc > LIMITS.ALC || state.helmetStatus == 1) {
-        let reason = state.helmetStatus == 1 ? "HELMET NOT DETECTED!" : "ALCOHOL DETECTED!";
+    if (state.alc > LIMITS.ALC || state.helmetStatus == 0) {
+        let reason = state.helmetStatus == 0 ? "HELMET NOT DETECTED!" : "ALCOHOL DETECTED!";
         alcAlert.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${reason} IGNITION DISENGAGED.`;
         alcAlert.className = 'alert critical';
         ignStatus.innerText = 'Ignition: CUT OFF';
