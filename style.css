@@ -101,6 +101,92 @@ body {
     }
 }
 
+/* Floating Doodles */
+.doodle {
+    position: absolute;
+    color: var(--primary);
+    opacity: 0.15;
+    font-size: 2rem;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.doodle-1 {
+    top: 15%;
+    left: 10%;
+    animation: floatDoodle1 15s infinite alternate ease-in-out;
+}
+
+.doodle-2 {
+    top: 70%;
+    left: 80%;
+    animation: floatDoodle2 18s infinite alternate-reverse ease-in-out;
+    font-size: 3rem;
+    color: var(--secondary);
+    opacity: 0.1;
+}
+
+.doodle-3 {
+    top: 40%;
+    left: 85%;
+    animation: floatDoodle3 20s infinite alternate ease-in;
+    font-size: 1.5rem;
+}
+
+.doodle-4 {
+    top: 80%;
+    left: 15%;
+    animation: floatDoodle1 22s infinite alternate-reverse;
+    color: var(--danger);
+    opacity: 0.1;
+}
+
+.doodle-5 {
+    top: 20%;
+    left: 70%;
+    animation: floatDoodle2 16s infinite alternate;
+    font-size: 1.2rem;
+}
+
+.doodle-6 {
+    top: 60%;
+    left: 30%;
+    animation: floatDoodle3 19s infinite alternate-reverse ease-out;
+    font-size: 2.5rem;
+    color: var(--success);
+    opacity: 0.1;
+}
+
+@keyframes floatDoodle1 {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(50px, -50px) rotate(45deg);
+    }
+}
+
+@keyframes floatDoodle2 {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+
+    100% {
+        transform: translate(-40px, 60px) rotate(-30deg) scale(1.2);
+    }
+}
+
+@keyframes floatDoodle3 {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(30px, 40px) rotate(90deg);
+    }
+}
+
 
 
 header {
